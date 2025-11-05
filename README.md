@@ -1,70 +1,85 @@
-# Getting Started with Create React App
+# EarthSentinel — Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+EarthSentinel is an interactive frontend dashboard for monitoring landslide and terrain risk.
+This repository contains the React-based UI used to visualize risk zones, alerts, and analytics for monitored regions.
 
-## Available Scripts
+The project was bootstrapped with Create React App and uses Tailwind CSS for styling and `lucide-react` for icons.
 
-In the project directory, you can run:
+## Quick start (development)
 
-### `npm start`
+Recommended Node: 16+ (or the version used by your team). From the project root, run:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```powershell
+npm install
+npm start
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Open http://localhost:3000 in your browser. The dev server supports hot reloading.
 
-### `npm test`
+## Available scripts
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- `npm start` — start the dev server
+- `npm test` — run tests (Create React App test runner)
+- `npm run build` — create an optimized production build in `build/`
+- `npm run eject` — eject CRA config (one-way operation)
 
-### `npm run build`
+If your project has additional scripts (linting, format), they will appear in `package.json`.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Tech stack
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- React (Create React App)
+- Tailwind CSS (utility-first styling used in `src/App.js`)
+- lucide-react (icons)
+- SVG for charts/visuals (small inline visualizations in `src/App.js`)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Project structure (important files)
 
-### `npm run eject`
+- `src/` — source code
+	- `App.js` — main dashboard component (UI + visualizations)
+	- `index.js` — app entry
+	- `App.css` / `index.css` — base styles (Tailwind utilities expected)
+	- `App.test.js`, `setupTests.js`, `reportWebVitals.js` — default CRA support files
+- `public/` — static assets and `index.html`
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The UI uses Tailwind utility classes extensively. Make sure your build includes the Tailwind setup if you adjusted the project after bootstrapping.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Features (from current UI)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- Interactive header with tabs: Overview, Analytics, Alerts
+- Mountain silhouette risk visualization with color-graded risk zones
+- Multiple metric cards, area charts, and small inline SVG charts
+- Responsive grid layout using Tailwind's grid utilities
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Contributing
 
-## Learn More
+1. Fork the repo and create a branch for your feature: `git checkout -b feat/your-feature`
+2. Make small, focused commits with clear messages
+3. Open a pull request describing the changes and any setup steps
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+If you add dependencies, update `package.json` and include a short rationale in your PR.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Tests
 
-### Code Splitting
+Run the default CRA tests with:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```powershell
+npm test
+```
 
-### Analyzing the Bundle Size
+Add unit/UI tests alongside components when possible. The repo currently contains the standard CRA test harness.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Notes & next steps
 
-### Making a Progressive Web App
+- If Tailwind is not yet configured in `postcss`/`craco`/`tailwind.config.js`, add it so utility classes are processed for production.
+- Consider adding a `NETLIFY`/`Vercel` deploy section if you want one-click deployment instructions.
+- Add a LICENSE file if you want to specify a license (MIT is common for open-source projects).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+---
 
-### Advanced Configuration
+If you'd like, I can:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- add a small CONTRIBUTING.md with a PR checklist
+- add a short Tailwind setup guide if your local environment lacks it
+- include a preview screenshot and badges (build / license)
 
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Tell me which of the above you'd like next and I will implement it.
