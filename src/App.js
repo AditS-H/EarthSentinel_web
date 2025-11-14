@@ -1,10 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { Mountain, Satellite, AlertTriangle, Activity, MapPin, TrendingUp, Zap, Shield, Eye, Brain, Radar, Waves } from 'lucide-react';
 
+const API_BASE = 'http://localhost:8000/api';
+
 const EarthSentinel = () => {
   const [activeTab, setActiveTab] = useState('monitoring');
   const [scanProgress, setScanProgress] = useState(0);
-  const [pulseActive, setPulseActive] = useState(true);
+  const [detections, setDetections] = useState([]);
+  const [riskZones, setRiskZones] = useState([]);
+  const [systemStatus, setSystemStatus] = useState(null);
+  const [metrics, setMetrics] = useState(null);
+  const [alerts, setAlerts] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch real data from API
+  useEffect(() => {
+    fetchAllData();
+    const interval = setInterval(fetchAllData, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchAllData = async () => {
+    try {
+      const [detectionsRes, zonesRes, statusRes, metricsRes, alertsRes] = await Promise.all([
+        fetch(`${API_BASE}/detections/recent?limit=10`),
+        fetch(`${API_BASE}/zones/high-risk`),
+        fetch(`${API_BASE}/system/status`),
+        fetch(`${API_BASE}/system/metrics`),
+        fetch(`${API_BASE}/alerts/active`)
+      ]);
+
+      const detectionsData = await detectionsRes.json();
+      const zonesData = await zonesRes.json();
+      const statusData = await statusRes.json();
+      const metricsData = await metricsRes.json();
+      const alertsData = await alertsRes.json();
+
+      setDetections(detectionsData.detections || []);
+      setRiskZones(zonesData.zones || []);
+      setSystemStatus(statusData);
+      setMetrics(metricsData);
+      setAlerts(alertsData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setLoading(false);
+    }
+  };
+
+  const triggerAnalysis = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/analysis/trigger`, { method: 'POST' });
+      const data = await response.json();
+      alert(data.message);
+    } catch (error) {
+      console.error('Error triggering analysis:', error);
+      alert('Failed to trigger analysis');
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -13,18 +66,15 @@ const EarthSentinel = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const riskZones = [
-    { name: 'Shimla District', risk: 87, trend: 'up', status: 'critical' },
-    { name: 'Kinnaur Valley', risk: 72, trend: 'stable', status: 'high' },
-    { name: 'Kullu Manali', risk: 45, trend: 'down', status: 'moderate' },
-    { name: 'Mandi Region', risk: 28, trend: 'down', status: 'low' }
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-2xl">Loading real detection data...</div>
+      </div>
+    );
+  }
 
-  const recentDetections = [
-    { time: '2m ago', location: 'Shimla-32.1N, 77.2E', severity: 'High', confidence: 94 },
-    { time: '15m ago', location: 'Kinnaur-31.5N, 78.3E', severity: 'Critical', confidence: 97 },
-    { time: '1h ago', location: 'Kullu-31.9N, 77.1E', severity: 'Medium', confidence: 89 }
-  ];
+  const latestAlert = detections.length > 0 ? detections[0] : null;
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
@@ -35,14 +85,12 @@ const EarthSentinel = () => {
           <div className="absolute top-0 right-1/4 w-96 h-96 bg-orange-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
           <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
         </div>
-        {/* Grid overlay */}
         <div className="absolute inset-0" style={{
           backgroundImage: `linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px)`,
           backgroundSize: '50px 50px'
         }}></div>
       </div>
 
-      {/* Content */}
       <div className="relative z-10">
         {/* Header */}
         <header className="border-b border-blue-500/20 backdrop-blur-xl bg-slate-900/30">
@@ -60,7 +108,7 @@ const EarthSentinel = () => {
                     </span>
                     <span className="text-white">SENTINEL</span>
                   </h1>
-                  <p className="text-xs text-blue-400 tracking-widest mt-0.5">TERRAIN INTELLIGENCE SYSTEM</p>
+                  <p className="text-xs text-blue-400 tracking-widest mt-0.5">SIAMESE CNN • REAL-TIME MONITORING</p>
                 </div>
               </div>
               
@@ -83,33 +131,41 @@ const EarthSentinel = () => {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-lg">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-green-400 text-sm font-medium">ONLINE</span>
+                  <span className="text-green-400 text-sm font-medium">
+                    {metrics?.total_detections || 0} LIVE DETECTIONS
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Main Dashboard */}
         <main className="container mx-auto px-8 py-8">
           {/* Alert Banner */}
-          <div className="mb-8 bg-gradient-to-r from-red-900/40 via-orange-900/40 to-red-900/40 border border-red-500/50 rounded-2xl p-4 backdrop-blur-xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <AlertTriangle className="w-8 h-8 text-red-400 animate-pulse" />
-                  <div className="absolute inset-0 bg-red-500 blur-xl opacity-50 animate-pulse"></div>
+          {latestAlert && (
+            <div className="mb-8 bg-gradient-to-r from-red-900/40 via-orange-900/40 to-red-900/40 border border-red-500/50 rounded-2xl p-4 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <AlertTriangle className="w-8 h-8 text-red-400 animate-pulse" />
+                    <div className="absolute inset-0 bg-red-500 blur-xl opacity-50 animate-pulse"></div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-red-300">
+                      {latestAlert.severity.toUpperCase()} ALERT: Terrain Displacement Detected
+                    </h3>
+                    <p className="text-sm text-red-400">
+                      {latestAlert.location} • {latestAlert.latitude.toFixed(4)}°N, {latestAlert.longitude.toFixed(4)}°E • 
+                      Confidence: {latestAlert.confidence.toFixed(1)}% • Area: {latestAlert.area_m2.toFixed(0)} m²
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-red-300">CRITICAL ALERT: Active Terrain Displacement Detected</h3>
-                  <p className="text-sm text-red-400">Shimla District - 32.1°N, 77.2°E • Confidence: 97.3% • Immediate Action Required</p>
-                </div>
+                <button className="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-sm transition-all shadow-lg shadow-red-500/50">
+                  VIEW DETAILS
+                </button>
               </div>
-              <button className="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-sm transition-all shadow-lg shadow-red-500/50">
-                VIEW DETAILS
-              </button>
             </div>
-          </div>
+          )}
 
           {/* Main Grid */}
           <div className="grid grid-cols-12 gap-6 mb-8">
@@ -119,7 +175,7 @@ const EarthSentinel = () => {
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <Satellite className="w-6 h-6 text-cyan-400" />
-                    <h2 className="text-xl font-bold text-white">SIAMESE NEURAL NETWORK • LIVE SCAN</h2>
+                    <h2 className="text-xl font-bold text-white">SIAMESE NEURAL NETWORK • LIVE ANALYSIS</h2>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-500/40 rounded-lg">
@@ -127,18 +183,18 @@ const EarthSentinel = () => {
                       <span className="text-purple-300 text-xs font-bold">AI ACTIVE</span>
                     </div>
                     <div className="px-3 py-1.5 bg-cyan-500/20 border border-cyan-500/40 rounded-lg">
-                      <span className="text-cyan-300 text-xs font-bold">{scanProgress}% PROCESSED</span>
+                      <span className="text-cyan-300 text-xs font-bold">
+                        {metrics?.model_accuracy || 98.7}% ACCURACY
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Terrain Visualization */}
+                {/* Terrain Visualization with REAL detection markers */}
                 <div className="relative h-96 bg-gradient-to-b from-blue-950 to-slate-950 rounded-2xl overflow-hidden border border-cyan-500/20">
-                  {/* Scanning line effect */}
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" 
                        style={{top: `${scanProgress}%`}}></div>
                   
-                  {/* 3D Mountain Terrain */}
                   <svg viewBox="0 0 800 400" className="w-full h-full">
                     <defs>
                       <linearGradient id="terrainGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -161,79 +217,84 @@ const EarthSentinel = () => {
                       </filter>
                     </defs>
                     
-                    {/* Background mountains */}
                     <path d="M0,350 L100,280 L200,260 L300,240 L400,220 L500,240 L600,260 L700,280 L800,350 Z" 
                           fill="rgba(30,58,138,0.3)"/>
                     <path d="M0,370 L150,310 L300,280 L450,260 L600,280 L800,370 Z" 
                           fill="rgba(30,64,175,0.4)"/>
                     
-                    {/* Main terrain with risk gradient */}
                     <path d="M0,400 L80,340 L160,300 L240,270 L320,240 L400,200 L480,240 L560,280 L640,320 L720,360 L800,400 Z" 
                           fill="url(#terrainGrad)" filter="url(#glow)"/>
                     
-                    {/* Snow peaks */}
                     <path d="M380,200 L400,170 L420,200" fill="rgba(255,255,255,0.95)"/>
                     <path d="M390,190 L400,180 L410,190" fill="rgba(226,232,240,0.9)"/>
                     
-                    {/* Risk zone markers */}
-                    <circle cx="400" cy="200" r="30" fill="url(#pulseGrad)" className="animate-ping"/>
-                    <circle cx="400" cy="200" r="8" fill="#ef4444" filter="url(#glow)"/>
+                    {/* Real detection markers */}
+                    {detections.slice(0, 5).map((det, i) => {
+                      const x = 200 + i * 120;
+                      const y = 200 + (det.max_prob - 0.88) * 1000;
+                      return (
+                        <g key={i}>
+                          <circle cx={x} cy={y} r="30" fill="url(#pulseGrad)" className="animate-ping"/>
+                          <circle cx={x} cy={y} r="8" fill="#ef4444" filter="url(#glow)"/>
+                        </g>
+                      );
+                    })}
                     
-                    <circle cx="250" cy="270" r="20" fill="url(#pulseGrad)" className="animate-ping" style={{animationDelay: '0.5s'}}/>
-                    <circle cx="250" cy="270" r="6" fill="#f97316" filter="url(#glow)"/>
-                    
-                    {/* Scan lines */}
                     {[...Array(10)].map((_, i) => (
                       <line key={i} x1="0" y1={i * 40 + 50} x2="800" y2={i * 40 + 50} 
                             stroke="rgba(34,211,238,0.1)" strokeWidth="1"/>
                     ))}
                   </svg>
 
-                  {/* Overlay stats */}
                   <div className="absolute top-6 left-6 bg-slate-900/90 backdrop-blur-md rounded-xl p-4 border border-cyan-500/30">
-                    <div className="text-xs text-cyan-400 mb-2">TEMPORAL ANALYSIS</div>
-                    <div className="text-2xl font-bold mb-1">14 <span className="text-sm text-gray-400">WEEKS</span></div>
-                    <div className="text-xs text-gray-400">Multi-temporal Detection</div>
+                    <div className="text-xs text-cyan-400 mb-2">DETECTIONS</div>
+                    <div className="text-2xl font-bold mb-1">{metrics?.total_detections || 0}</div>
+                    <div className="text-xs text-gray-400">Active Zones</div>
                   </div>
 
                   <div className="absolute top-6 right-6 bg-slate-900/90 backdrop-blur-md rounded-xl p-4 border border-orange-500/30">
-                    <div className="text-xs text-orange-400 mb-2">RISK LEVEL</div>
-                    <div className="text-2xl font-bold text-orange-500">HIGH</div>
-                    <div className="text-xs text-gray-400">Displacement: 4.2cm/week</div>
+                    <div className="text-xs text-orange-400 mb-2">MAX RISK</div>
+                    <div className="text-2xl font-bold text-orange-500">
+                      {metrics?.max_risk ? (metrics.max_risk * 100).toFixed(1) : 0}%
+                    </div>
+                    <div className="text-xs text-gray-400">Probability</div>
                   </div>
 
                   <div className="absolute bottom-6 left-6 bg-slate-900/90 backdrop-blur-md rounded-xl p-4 border border-purple-500/30">
-                    <div className="text-xs text-purple-400 mb-2">MODEL ACCURACY</div>
-                    <div className="text-2xl font-bold text-purple-400">98.7%</div>
-                    <div className="text-xs text-gray-400">Siamese CNN Performance</div>
+                    <div className="text-xs text-purple-400 mb-2">AREA AT RISK</div>
+                    <div className="text-2xl font-bold text-purple-400">
+                      {metrics?.total_area_at_risk_m2 ? (metrics.total_area_at_risk_m2 / 1000000).toFixed(2) : 0} km²
+                    </div>
+                    <div className="text-xs text-gray-400">Total Coverage</div>
                   </div>
                 </div>
 
                 {/* Processing Stats */}
                 <div className="grid grid-cols-4 gap-4 mt-6">
                   <div className="bg-slate-950/50 rounded-xl p-4 border border-blue-500/20">
-                    <div className="text-xs text-blue-400 mb-1">PATCHES PROCESSED</div>
-                    <div className="text-2xl font-bold">8,432</div>
+                    <div className="text-xs text-blue-400 mb-1">TOTAL DETECTIONS</div>
+                    <div className="text-2xl font-bold">{metrics?.total_detections || 0}</div>
                   </div>
-                  <div className="bg-slate-950/50 rounded-xl p-4 border border-cyan-500/20">
-                    <div className="text-xs text-cyan-400 mb-1">EMBEDDINGS</div>
-                    <div className="text-2xl font-bold">512D</div>
+                  <div className="bg-slate-950/50 rounded-xl p-4 border border-red-500/20">
+                    <div className="text-xs text-red-400 mb-1">CRITICAL</div>
+                    <div className="text-2xl font-bold text-red-400">{metrics?.critical_detections || 0}</div>
                   </div>
                   <div className="bg-slate-950/50 rounded-xl p-4 border border-orange-500/20">
-                    <div className="text-xs text-orange-400 mb-1">DETECTIONS</div>
-                    <div className="text-2xl font-bold text-orange-400">23</div>
+                    <div className="text-xs text-orange-400 mb-1">RISK ZONES</div>
+                    <div className="text-2xl font-bold text-orange-400">{metrics?.high_risk_zones || 0}</div>
                   </div>
                   <div className="bg-slate-950/50 rounded-xl p-4 border border-purple-500/20">
-                    <div className="text-xs text-purple-400 mb-1">PROCESSING</div>
-                    <div className="text-2xl font-bold">Real-time</div>
+                    <div className="text-xs text-purple-400 mb-1">AVG CONFIDENCE</div>
+                    <div className="text-2xl font-bold">
+                      {metrics?.avg_confidence ? metrics.avg_confidence.toFixed(1) : 0}%
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Sidebar */}
+            {/* Right Sidebar - REAL Risk Zones */}
             <div className="col-span-4 space-y-6">
-              {/* Risk Zones */}
               <div className="bg-gradient-to-br from-slate-900/90 to-purple-900/30 backdrop-blur-xl rounded-2xl border border-purple-500/30 p-6 shadow-2xl">
                 <div className="flex items-center gap-3 mb-6">
                   <MapPin className="w-5 h-5 text-purple-400" />
@@ -263,12 +324,17 @@ const EarthSentinel = () => {
                             'bg-gradient-to-r from-green-500 to-yellow-500'
                           }`} style={{width: `${zone.risk}%`}}></div>
                         </div>
-                        <span className="text-xl font-bold">{zone.risk}%</span>
+                        <span className="text-xl font-bold">{zone.risk.toFixed(0)}%</span>
                       </div>
                       
-                      <div className="flex items-center gap-2 text-xs">
-                        <TrendingUp className={`w-3 h-3 ${zone.trend === 'up' ? 'text-red-400' : 'text-green-400'} ${zone.trend === 'up' ? 'rotate-0' : 'rotate-180'}`} />
-                        <span className="text-gray-400">{zone.trend === 'up' ? 'Increasing' : 'Decreasing'} risk</span>
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className={`w-3 h-3 ${zone.trend === 'up' ? 'text-red-400' : 'text-green-400'} ${zone.trend === 'up' ? 'rotate-0' : 'rotate-180'}`} />
+                          <span className="text-gray-400">{zone.detection_count} detections</span>
+                        </div>
+                        <span className="text-gray-500">
+                          {(zone.area_m2 / 1000000).toFixed(2)} km²
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -312,22 +378,29 @@ const EarthSentinel = () => {
                     </div>
                   </div>
                 </div>
+                
+                <button 
+                  onClick={triggerAnalysis}
+                  className="w-full mt-6 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold text-sm transition-all"
+                >
+                  TRIGGER NEW SCAN
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Recent Detections */}
+          {/* Recent Detections - REAL DATA */}
           <div className="bg-gradient-to-br from-slate-900/90 to-orange-900/30 backdrop-blur-xl rounded-2xl border border-orange-500/30 p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <Eye className="w-6 h-6 text-orange-400" />
-                <h3 className="text-xl font-bold">RECENT DETECTIONS</h3>
+                <h3 className="text-xl font-bold">RECENT DETECTIONS (REAL DATA)</h3>
               </div>
               <button className="text-sm text-orange-400 hover:text-orange-300 font-semibold">VIEW ALL →</button>
             </div>
 
             <div className="space-y-3">
-              {recentDetections.map((detection, i) => (
+              {detections.slice(0, 5).map((detection, i) => (
                 <div key={i} className="bg-slate-950/50 rounded-xl p-4 border border-slate-700/50 hover:border-orange-500/50 transition-all flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
@@ -342,17 +415,28 @@ const EarthSentinel = () => {
                       }`} />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-white mb-1">{detection.location}</div>
-                      <div className="text-xs text-gray-400">{detection.time} • Confidence: {detection.confidence}%</div>
+                      <div className="text-sm font-semibold text-white mb-1">
+                        {detection.location}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {detection.latitude.toFixed(4)}°N, {detection.longitude.toFixed(4)}°E • 
+                        Confidence: {detection.confidence.toFixed(1)}% • 
+                        Area: {(detection.area_m2 / 1000).toFixed(1)}k m²
+                      </div>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                    detection.severity === 'Critical' ? 'bg-red-500/20 text-red-400' :
-                    detection.severity === 'High' ? 'bg-orange-500/20 text-orange-400' :
-                    'bg-yellow-500/20 text-yellow-400'
-                  }`}>
-                    {detection.severity}
-                  </span>
+                  <div className="text-right">
+                    <span className={`px-3 py-1 rounded-lg text-xs font-bold block mb-1 ${
+                      detection.severity === 'Critical' ? 'bg-red-500/20 text-red-400' :
+                      detection.severity === 'High' ? 'bg-orange-500/20 text-orange-400' :
+                      'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {detection.severity}
+                    </span>
+                    {detection.rank && (
+                      <span className="text-xs text-gray-500">Rank #{detection.rank}</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -363,7 +447,7 @@ const EarthSentinel = () => {
         <footer className="border-t border-blue-500/20 backdrop-blur-xl bg-slate-900/30 mt-12">
           <div className="container mx-auto px-8 py-6">
             <div className="flex items-center justify-between text-sm text-gray-400">
-              <div>EarthSentinel v2.0 • Powered by Siamese Neural Networks</div>
+              <div>EarthSentinel v2.0 • Siamese Neural Network • Real Detection Data</div>
               <div className="flex items-center gap-6">
                 <span>Data Source: Google Earth Engine</span>
                 <span>•</span>
